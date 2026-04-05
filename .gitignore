@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 *.pyo
 data/
-output/
+# Generated run reports only (root). Do NOT use plain "output/" — that ignores src/output/ too.
+/output/
 scheduler.log
 .DS_Store

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Transcript Investing — {{ run_date }}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface-2: #1c2535;
+    --border: #1f2d40;
+    --accent: #3b82f6;
+    --accent-2: #6366f1;
+    --green: #10b981;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --radius: 12px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+  .header {
+    background: linear-gradient(135deg, #0a0e1a 0%, #111827 50%, #0f172a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 0 24px;
+    margin-bottom: 32px;
+  }
+  .header-inner { display: flex; justify-content: space-between; align-items: flex-end; }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .run-meta { text-align: right; color: var(--muted); font-size: 12px; line-height: 1.8; }
+  .run-meta strong { color: var(--text); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 28px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 10px 20px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--text); background: var(--surface-2); }
+  .tab.active {
+    color: var(--text);
+    background: var(--surface);
+    border-color: var(--border);
+    border-bottom-color: var(--surface);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .card-title { font-size: 16px; font-weight: 600; }
+  .card-subtitle { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  /* ── Opportunity cards ── */
+  .opp-grid { display: grid; gap: 20px; }
+  .opp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .opp-card:hover { border-color: var(--accent); }
+  .opp-header {
+    padding: 20px 24px 16px;
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 16px;
+    align-items: start;
+    cursor: pointer;
+    user-select: none;
+  }
+  .rank-badge {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .opp-meta { min-width: 0; }
+  .opp-theme { font-size: 17px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
+  .opp-sector {
+    display: inline-block;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .conviction-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .conviction-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .conviction-value { font-size: 26px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .conviction-max { font-size: 12px; color: var(--muted); }
+  .horizon-badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .horizon-near { background: rgba(16,185,129,0.15); color: var(--green); }
+  .horizon-mid  { background: rgba(245,158,11,0.15);  color: var(--yellow); }
+  .horizon-long { background: rgba(99,102,241,0.15);  color: var(--accent-2); }
+
+  /* ── Collapsible body ── */
+  .opp-body { display: none; padding: 0 24px 24px; border-top: 1px solid var(--border); }
+  .opp-body.open { display: block; }
+  .opp-body-inner { padding-top: 20px; }
+  .thesis {
+    background: var(--surface-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  /* ── Tickers ── */
+  .ticker-section { margin-bottom: 20px; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .ticker-list { display: flex; flex-wrap: wrap; gap: 10px; }
+  .ticker-chip {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 120px;
+    transition: border-color 0.15s;
+  }
+  .ticker-chip:hover { border-color: var(--accent); }
+  .ticker-symbol { font-size: 15px; font-weight: 700; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--accent); }
+  .ticker-name { font-size: 11px; color: var(--muted); margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+  .ticker-price { font-size: 12px; font-weight: 600; }
+  .ticker-perf { font-size: 11px; }
+  .up { color: var(--green); }
+  .down { color: var(--red); }
+  .ticker-rationale { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .tag-crypto { border-color: #f59e0b44; color: var(--yellow); }
+
+  /* ── Quotes ── */
+  .quote-list { display: flex; flex-direction: column; gap: 12px; }
+  .quote-item {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .quote-speaker { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+  .quote-text {
+    font-style: italic;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .quote-text::before { content: '"'; }
+  .quote-text::after  { content: '"'; }
+  .risks-box {
+    background: rgba(239,68,68,0.07);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #fca5a5;
+    line-height: 1.6;
+  }
+
+  /* ── Charts panel ── */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+  .chart-container { position: relative; height: 280px; }
+
+  /* ── Entities panel ── */
+  .entities-grid { display: grid; gap: 20px; }
+  .entity-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .entity-header {
+    padding: 18px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer;
+    background: var(--surface-2);
+  }
+  .entity-name { font-size: 16px; font-weight: 600; }
+  .entity-stats { display: flex; gap: 16px; }
+  .entity-stat { text-align: right; }
+  .entity-stat-num { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .entity-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .entity-body { display: none; padding: 20px 24px; }
+  .entity-body.open { display: block; }
+  .entity-summary { color: var(--muted); font-size: 13px; line-height: 1.7; margin-bottom: 16px; }
+  .signal-list { display: flex; flex-direction: column; gap: 10px; }
+  .signal-item {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+  }
+  .signal-topic { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .signal-statement { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .signal-conviction {
+    font-size: 20px; font-weight: 800; color: var(--accent);
+    min-width: 28px; text-align: center;
+  }
+
+  /* ── Heatmap ── */
+  .heatmap-grid { display: grid; gap: 4px; }
+  .heatmap-row { display: flex; align-items: center; gap: 4px; }
+  .heatmap-label { width: 130px; font-size: 11px; color: var(--muted); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .heatmap-cell {
+    height: 28px; flex: 1;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.8);
+    transition: opacity 0.15s;
+  }
+  .heatmap-cell:hover { opacity: 0.8; }
+  .heatmap-header { display: flex; gap: 4px; margin-bottom: 4px; padding-left: 134px; }
+  .heatmap-col-label { flex: 1; font-size: 10px; color: var(--muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .header-inner { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .run-meta { text-align: left; }
+    .opp-header { grid-template-columns: 40px 1fr; }
+    .conviction-bar { display: none; }
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Utility ── */
+  .chevron { transition: transform 0.2s; display: inline-block; color: var(--muted); }
+  .chevron.open { transform: rotate(180deg); }
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .badge-green { background: rgba(16,185,129,0.15); color: var(--green); }
+  .empty-state { text-align: center; color: var(--muted); padding: 48px; }
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 48px; padding: 24px 0;
+    text-align: center; color: var(--muted); font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="container">
+    <div class="header-inner">
+      <div>
+        <div class="logo">Transcript<span>Invest</span></div>
+        <div style="color:var(--muted);font-size:12px;margin-top:4px;">
+          AI-powered investment intelligence from public speech
+        </div>
+      </div>
+      <div class="run-meta">
+        <div>Report date: <strong>{{ run_date }}</strong></div>
+        <div>Sources analysed: <strong>{{ total_transcripts }}</strong></div>
+        <div>Entities tracked: <strong>{{ entity_count }}</strong></div>
+        <div>Signals extracted: <strong>{{ total_signals }}</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('opportunities', this)">Opportunities</div>
+    <div class="tab" onclick="switchTab('charts', this)">Charts</div>
+    <div class="tab" onclick="switchTab('entities', this)">Entities</div>
+    <div class="tab" onclick="switchTab('heatmap', this)">Theme Heatmap</div>
+  </div>
+
+  <!-- ── OPPORTUNITIES TAB ── -->
+  <div id="tab-opportunities" class="tab-panel active">
+    {% if cross_cutting_themes %}
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Cross-Cutting Themes</div>
+          <div class="card-subtitle">Topics that appeared across multiple speakers</div>
+        </div>
+      </div>
+      <div class="tag-list">
+        {% for theme in cross_cutting_themes %}
+        <span class="badge badge-blue">{{ theme }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="opp-grid">
+      {% for opp in opportunities %}
+      <div class="opp-card" id="opp-{{ loop.index }}">
+        <div class="opp-header" onclick="toggleOpp('opp-{{ loop.index }}')">
+          <div class="rank-badge">{{ opp.rank }}</div>
+          <div class="opp-meta">
+            <div class="opp-theme">{{ opp.macro_theme }}</div>
+            <span class="opp-sector">{{ opp.sector }}</span>
+            &nbsp;
+            <span class="horizon-badge {% if 'near' in opp.time_horizon %}horizon-near{% elif 'mid' in opp.time_horizon %}horizon-mid{% else %}horizon-long{% endif %}">
+              {{ opp.time_horizon }}
+            </span>
+          </div>
+          <div class="conviction-bar">
+            <span class="conviction-label">CONVICTION</span>
+            <span class="conviction-value">{{ "%.1f"|format(opp.conviction_score) }}</span>
+            <span class="conviction-max">/10</span>
+            <span class="chevron" id="chevron-opp-{{ loop.index }}">▼</span>
+          </div>
+        </div>
+        <div class="opp-body" id="body-opp-{{ loop.index }}">
+          <div class="opp-body-inner">
+            <div class="thesis">{{ opp.thesis }}</div>
+
+            {% if opp.etfs %}
+            <div class="ticker-section">
+              <div class="section-label">ETFs</div>
+              <div class="ticker-list">
+                {% for etf in opp.etfs %}
+                <div class="ticker-chip">
+                  <div class="ticker-symbol">{{ etf.ticker }}</div>
+                  {% if etf.market_data and etf.market_data.name %}
+                  <div class="ticker-name">{{ etf.market_data.name }}</div>
+                  {% endif %}
+                  {% if etf.market_data and etf.market_data.current_price %}
+                  <div class="ticker-price">${{ "%.2f"|format(etf.market_data.current_price) }}</div>
+                  {% endif %}
+                  {% if etf.market_data and etf.market_data.perf_1m_pct is not none %}
+                  <div class="ticker-perf {% if etf.market_data.perf_1m_pct >= 0 %}up{% else %}down{% endif %}">
+                    {% if etf.market_data.perf_1m_pct >= 0 %}+{% endif %}{{ "%.1f"|format(etf.market_data.perf_1m_pct) }}% 1mo
+                  </div>
+                  {% endif %}
+                  <div class="ticker-rationale">{{ etf.rationale }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if opp.stocks %}
+            <div class="ticker-section">
+              <div class="section-label">Individual Stocks</div>
+              <div class="ticker-list">
+                {% for stock in opp.stocks %}
+                <div class="ticker-chip">
+                  <div class="ticker-symbol">{{ stock.ticker }}</div>
+                  <div class="ticker-name">{{ stock.company_name }}</div>
+                  {% if stock.market_data and stock.market_data.current_price %}
+                  <div class="ticker-price">${{ "%.2f"|format(stock.market_data.current_price) }}</div>
+                  {% endif %}
+                  {% if stock.market_data and stock.market_data.perf_1m_pct is not none %}
+                  <div class="ticker-perf {% if stock.market_data.perf_1m_pct >= 0 %}up{% else %}down{% endif %}">
+                    {% if stock.market_data.perf_1m_pct >= 0 %}+{% endif %}{{ "%.1f"|format(stock.market_data.perf_1m_pct) }}% 1mo
+                  </div>
+                  {% endif %}
+                  <div class="ticker-rationale">{{ stock.rationale }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if opp.crypto_plays %}
+            <div class="ticker-section">
+              <div class="section-label">Crypto / Digital Assets</div>
+              <div class="tag-list">
+                {% for c in opp.crypto_plays %}
+                <span class="tag tag-crypto">{{ c }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if opp.private_plays %}
+            <div class="ticker-section">
+              <div class="section-label">Private / Venture</div>
+              <div class="tag-list">
+                {% for p in opp.private_plays %}
+                <span class="tag">{{ p }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if opp.supporting_signals %}
+            <div class="ticker-section">
+              <div class="section-label">Supporting Quotes</div>
+              <div class="quote-list">
+                {% for sig in opp.supporting_signals[:4] %}
+                <div class="quote-item">
+                  <div class="quote-speaker">{{ sig.speaker }}{% if sig.source %} · {{ sig.source }}{% endif %}</div>
+                  <div class="quote-text">{{ sig.quote }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if opp.risks %}
+            <div class="ticker-section">
+              <div class="section-label">Key Risks</div>
+              <div class="risks-box">{{ opp.risks }}</div>
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state">No opportunities generated yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── CHARTS TAB ── -->
+  <div id="tab-charts" class="tab-panel">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Conviction by Theme</div>
+        <div class="chart-container"><canvas id="chart-conviction"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Time Horizon Distribution</div>
+        <div class="chart-container"><canvas id="chart-horizon"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Transcripts by Source</div>
+        <div class="chart-container"><canvas id="chart-sources"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Signals per Entity</div>
+        <div class="chart-container"><canvas id="chart-entities"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ENTITIES TAB ── -->
+  <div id="tab-entities" class="tab-panel">
+    <div class="entities-grid">
+      {% for entity in entities %}
+      <div class="entity-card" id="entity-{{ loop.index }}">
+        <div class="entity-header" onclick="toggleEntity('entity-{{ loop.index }}')">
+          <div>
+            <div class="entity-name">{{ entity.name }}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+              {{ entity.transcript_count }} transcript{{ 's' if entity.transcript_count != 1 }}
+              &nbsp;·&nbsp;
+              {{ entity.sources | join(', ') }}
+            </div>
+          </div>
+          <div class="entity-stats">
+            <div class="entity-stat">
+              <div class="entity-stat-num">{{ entity.signal_count }}</div>
+              <div class="entity-stat-label">Signals</div>
+            </div>
+            <div class="entity-stat">
+              <div class="entity-stat-num">{{ entity.avg_conviction }}</div>
+              <div class="entity-stat-label">Avg Conv.</div>
+            </div>
+            <span class="chevron" id="chevron-entity-{{ loop.index }}">▼</span>
+          </div>
+        </div>
+        <div class="entity-body" id="body-entity-{{ loop.index }}">
+          {% if entity.summary %}
+          <div class="entity-summary">{{ entity.summary }}</div>
+          {% endif %}
+          <div class="signal-list">
+            {% for sig in entity.top_signals %}
+            <div class="signal-item">
+              <div>
+                <div class="signal-topic">{{ sig.topic }}</div>
+                <div class="signal-statement">{{ sig.statement }}</div>
+                {% if sig.quote %}
+                <div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:6px;">"{{ sig.quote[:200] }}{% if sig.quote|length > 200 %}…{% endif %}"</div>
+                {% endif %}
+              </div>
+              <div class="signal-conviction">{{ sig.conviction }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── HEATMAP TAB ── -->
+  <div id="tab-heatmap" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Entity × Theme Signal Heatmap</div>
+          <div class="card-subtitle">Conviction strength of each entity on each macro theme</div>
+        </div>
+      </div>
+      <div id="heatmap-container">
+        <div class="heatmap-header">
+          {% for theme in heatmap_themes %}
+          <div class="heatmap-col-label" title="{{ theme }}">{{ theme[:15] }}{% if theme|length > 15 %}…{% endif %}</div>
+          {% endfor %}
+        </div>
+        <div class="heatmap-grid">
+          {% for row in heatmap_rows %}
+          <div class="heatmap-row">
+            <div class="heatmap-label" title="{{ row.entity }}">{{ row.entity }}</div>
+            {% for val in row.cells %}
+            <div class="heatmap-cell"
+                 style="background: rgba(59,130,246,{{ val / 10.0 }}); {% if val > 0 %}min-width:20px;{% endif %}"
+                 title="{{ val }}">
+              {% if val > 0 %}{{ val }}{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    Generated by TranscriptInvest on {{ run_date }} &nbsp;·&nbsp;
+    <strong>Not financial advice.</strong> For informational purposes only.
+  </div>
+</footer>
+
+<script>
+// ── Tab switching ──
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Collapsible opportunities ──
+function toggleOpp(id) {
+  const body = document.getElementById('body-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+function toggleEntity(id) {
+  const body = document.getElementById('body-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+// ── Expand first opportunity by default ──
+document.addEventListener('DOMContentLoaded', function() {
+  const firstOpp = document.querySelector('.opp-body');
+  const firstChevron = document.querySelector('.chevron');
+  if (firstOpp) { firstOpp.classList.add('open'); firstChevron.classList.add('open'); }
+  renderCharts();
+});
+
+// ── Embedded data ──
+const CHART_DATA = {{ chart_data_json }};
+
+function renderCharts() {
+  const defaults = {
+    color: '#e2e8f0',
+    plugins: { legend: { labels: { color: '#94a3b8' } } },
+  };
+
+  // Conviction bar chart
+  new Chart(document.getElementById('chart-conviction'), {
+    type: 'bar',
+    data: {
+      labels: CHART_DATA.conviction.labels,
+      datasets: [{
+        label: 'Conviction Score',
+        data: CHART_DATA.conviction.values,
+        backgroundColor: CHART_DATA.conviction.values.map(v =>
+          `rgba(59,130,246,${0.4 + v / 20})`
+        ),
+        borderColor: '#3b82f6',
+        borderWidth: 1,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#64748b', maxRotation: 35 }, grid: { color: '#1f2d40' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1f2d40' }, min: 0, max: 10 }
+      }
+    }
+  });
+
+  // Horizon doughnut
+  new Chart(document.getElementById('chart-horizon'), {
+    type: 'doughnut',
+    data: {
+      labels: CHART_DATA.horizon.labels,
+      datasets: [{
+        data: CHART_DATA.horizon.values,
+        backgroundColor: ['#10b981', '#f59e0b', '#6366f1'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16 } } },
+      cutout: '60%',
+    }
+  });
+
+  // Source bar
+  new Chart(document.getElementById('chart-sources'), {
+    type: 'bar',
+    data: {
+      labels: CHART_DATA.sources.labels,
+      datasets: [{
+        label: 'Transcripts',
+        data: CHART_DATA.sources.values,
+        backgroundColor: ['#3b82f6','#10b981','#f59e0b','#6366f1'],
+        borderWidth: 0, borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: '#1f2d40' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1f2d40' } }
+      }
+    }
+  });
+
+  // Entity signals bar
+  new Chart(document.getElementById('chart-entities'), {
+    type: 'horizontalBar',
+    type: 'bar',
+    data: {
+      labels: CHART_DATA.entities.labels,
+      datasets: [{
+        label: 'Signals',
+        data: CHART_DATA.entities.values,
+        backgroundColor: '#6366f1',
+        borderWidth: 0, borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: '#1f2d40' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1f2d40' } }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>

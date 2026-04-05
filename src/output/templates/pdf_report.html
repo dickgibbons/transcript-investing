@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  @page {
+    size: A4;
+    margin: 2cm 2.2cm 2.5cm 2.2cm;
+    @bottom-center {
+      content: "TranscriptInvest · " string(run-date) " · Page " counter(page) " of " counter(pages);
+      font-size: 9pt;
+      color: #94a3b8;
+    }
+  }
+
+  :root {
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --green: #059669;
+    --red: #dc2626;
+    --yellow: #d97706;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --surface: #f8fafc;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10pt;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    string-set: run-date content();
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 48pt 0;
+  }
+  .cover-logo {
+    font-size: 28pt;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -1px;
+    margin-bottom: 8pt;
+  }
+  .cover-tagline { font-size: 12pt; color: var(--muted); margin-bottom: 40pt; }
+  .cover-meta { border-top: 2pt solid var(--accent); padding-top: 20pt; }
+  .cover-meta-row { display: flex; justify-content: space-between; margin-bottom: 8pt; }
+  .cover-meta-label { color: var(--muted); font-size: 9pt; text-transform: uppercase; letter-spacing: 0.5pt; }
+  .cover-meta-value { font-weight: 600; }
+  .cover-disclaimer {
+    margin-top: 32pt;
+    padding: 12pt 16pt;
+    background: #fef9c3;
+    border: 1pt solid #fde047;
+    border-radius: 6pt;
+    font-size: 8pt;
+    color: #713f12;
+  }
+
+  /* ── Headings ── */
+  h1 { font-size: 18pt; font-weight: 800; color: var(--accent); margin: 0 0 8pt; }
+  h2 {
+    font-size: 13pt; font-weight: 700; color: var(--text);
+    margin: 24pt 0 10pt;
+    border-bottom: 1pt solid var(--border);
+    padding-bottom: 4pt;
+  }
+  h3 { font-size: 11pt; font-weight: 700; color: var(--text); margin: 16pt 0 6pt; }
+
+  /* ── Opportunity cards ── */
+  .opp {
+    border: 1pt solid var(--border);
+    border-radius: 8pt;
+    margin-bottom: 20pt;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+  .opp-head {
+    background: var(--accent-light);
+    border-bottom: 1pt solid #bfdbfe;
+    padding: 12pt 16pt;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .opp-rank {
+    font-size: 22pt; font-weight: 900; color: var(--accent);
+    margin-right: 12pt; flex-shrink: 0;
+  }
+  .opp-title-block { flex: 1; }
+  .opp-theme { font-size: 13pt; font-weight: 700; margin-bottom: 4pt; }
+  .opp-meta-row { display: flex; gap: 8pt; flex-wrap: wrap; }
+  .pill {
+    display: inline-block;
+    font-size: 8pt; font-weight: 600;
+    padding: 2pt 8pt; border-radius: 20pt;
+    line-height: 1.4;
+  }
+  .pill-sector { background: var(--border); color: var(--muted); }
+  .pill-near   { background: #d1fae5; color: var(--green); }
+  .pill-mid    { background: #fef3c7; color: var(--yellow); }
+  .pill-long   { background: #ede9fe; color: #7c3aed; }
+  .conviction-badge {
+    text-align: right; flex-shrink: 0;
+  }
+  .conviction-num { font-size: 24pt; font-weight: 900; color: var(--accent); line-height: 1; }
+  .conviction-label { font-size: 7pt; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5pt; }
+
+  .opp-body { padding: 14pt 16pt; }
+  .thesis {
+    background: var(--surface);
+    border-left: 3pt solid var(--accent);
+    padding: 10pt 12pt;
+    font-size: 10pt;
+    line-height: 1.7;
+    margin-bottom: 14pt;
+    border-radius: 0 6pt 6pt 0;
+  }
+
+  /* ── Ticker table ── */
+  .ticker-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10pt; }
+  .ticker-table th {
+    background: var(--surface);
+    border-bottom: 1pt solid var(--border);
+    padding: 5pt 8pt;
+    text-align: left;
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.4pt; color: var(--muted);
+  }
+  .ticker-table td { padding: 5pt 8pt; border-bottom: 1pt solid var(--border); vertical-align: top; }
+  .ticker-table tr:last-child td { border-bottom: none; }
+  .ticker-sym { font-family: 'Courier New', monospace; font-weight: 700; color: var(--accent); font-size: 10pt; }
+  .up   { color: var(--green); font-weight: 600; }
+  .down { color: var(--red);   font-weight: 600; }
+
+  /* ── Quotes ── */
+  blockquote {
+    margin: 8pt 0;
+    padding: 8pt 12pt;
+    background: var(--surface);
+    border-radius: 6pt;
+    font-style: italic;
+    font-size: 9pt;
+    color: #334155;
+    page-break-inside: avoid;
+  }
+  blockquote cite {
+    display: block;
+    margin-top: 4pt;
+    font-style: normal;
+    font-size: 8pt;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* ── Risks ── */
+  .risks {
+    background: #fff7ed;
+    border: 1pt solid #fed7aa;
+    border-radius: 6pt;
+    padding: 8pt 12pt;
+    font-size: 9pt;
+    color: #9a3412;
+    margin-top: 8pt;
+    page-break-inside: avoid;
+  }
+  .risks-label { font-weight: 700; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.4pt; margin-bottom: 4pt; }
+
+  /* ── Cross-cutting themes ── */
+  .themes-box { display: flex; flex-wrap: wrap; gap: 6pt; margin-bottom: 16pt; }
+  .theme-tag {
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1pt solid #bfdbfe;
+    border-radius: 4pt;
+    padding: 3pt 10pt;
+    font-size: 9pt;
+    font-weight: 600;
+  }
+
+  /* ── Section break ── */
+  .page-break { page-break-before: always; }
+
+  /* ── Entity summary table ── */
+  .entity-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  .entity-table th {
+    background: var(--accent-light);
+    border-bottom: 2pt solid #bfdbfe;
+    padding: 6pt 10pt;
+    text-align: left;
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.4pt; color: var(--accent);
+  }
+  .entity-table td { padding: 7pt 10pt; border-bottom: 1pt solid var(--border); vertical-align: top; }
+  .entity-table tr:last-child td { border-bottom: none; }
+  .entity-table tr:nth-child(even) td { background: var(--surface); }
+</style>
+</head>
+<body>
+
+<!-- Cover page -->
+<div class="cover">
+  <div class="cover-logo">TranscriptInvest</div>
+  <div class="cover-tagline">AI-powered investment intelligence from public speech</div>
+  <div class="cover-meta">
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">Report Date</span>
+      <span class="cover-meta-value" style="string-set: run-date content()">{{ run_date }}</span>
+    </div>
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">Entities Tracked</span>
+      <span class="cover-meta-value">{{ entity_count }}</span>
+    </div>
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">Transcripts Analysed</span>
+      <span class="cover-meta-value">{{ total_transcripts }}</span>
+    </div>
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">Signals Extracted</span>
+      <span class="cover-meta-value">{{ total_signals }}</span>
+    </div>
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">Investment Opportunities</span>
+      <span class="cover-meta-value">{{ opportunities | length }}</span>
+    </div>
+  </div>
+  <div class="cover-disclaimer">
+    <strong>Disclaimer:</strong> This report is generated automatically from public speech transcripts using AI.
+    It is for informational purposes only and does not constitute financial advice.
+    Always conduct your own due diligence before making investment decisions.
+  </div>
+</div>
+
+<!-- Executive Summary -->
+<h1>Investment Opportunities</h1>
+<p style="color:var(--muted);margin-bottom:20pt;">
+  Ranked by composite conviction score derived from {{ total_signals }} signals
+  across {{ entity_count }} industry leaders' public speech in the last 30 days.
+</p>
+
+{% if cross_cutting_themes %}
+<h2>Cross-Cutting Themes</h2>
+<div class="themes-box">
+  {% for theme in cross_cutting_themes %}
+  <span class="theme-tag">{{ theme }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Opportunities -->
+{% for opp in opportunities %}
+<div class="opp">
+  <div class="opp-head">
+    <span class="opp-rank">#{{ opp.rank }}</span>
+    <div class="opp-title-block">
+      <div class="opp-theme">{{ opp.macro_theme }}</div>
+      <div class="opp-meta-row">
+        <span class="pill pill-sector">{{ opp.sector }}</span>
+        <span class="pill {% if 'near' in opp.time_horizon %}pill-near{% elif 'mid' in opp.time_horizon %}pill-mid{% else %}pill-long{% endif %}">
+          {{ opp.time_horizon }}
+        </span>
+      </div>
+    </div>
+    <div class="conviction-badge">
+      <div class="conviction-num">{{ "%.1f"|format(opp.conviction_score) }}</div>
+      <div class="conviction-label">/ 10</div>
+    </div>
+  </div>
+  <div class="opp-body">
+    <div class="thesis">{{ opp.thesis }}</div>
+
+    {% if opp.etfs %}
+    <h3>ETFs</h3>
+    <table class="ticker-table">
+      <tr>
+        <th>Ticker</th><th>Name</th><th>Price</th><th>1-Mo</th><th>Rationale</th>
+      </tr>
+      {% for etf in opp.etfs %}
+      <tr>
+        <td><span class="ticker-sym">{{ etf.ticker }}</span></td>
+        <td>{{ etf.market_data.name if etf.market_data else '—' }}</td>
+        <td>{% if etf.market_data and etf.market_data.current_price %}${{ "%.2f"|format(etf.market_data.current_price) }}{% else %}—{% endif %}</td>
+        <td>
+          {% if etf.market_data and etf.market_data.perf_1m_pct is not none %}
+          <span class="{% if etf.market_data.perf_1m_pct >= 0 %}up{% else %}down{% endif %}">
+            {% if etf.market_data.perf_1m_pct >= 0 %}+{% endif %}{{ "%.1f"|format(etf.market_data.perf_1m_pct) }}%
+          </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ etf.rationale }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if opp.stocks %}
+    <h3>Individual Stocks</h3>
+    <table class="ticker-table">
+      <tr>
+        <th>Ticker</th><th>Company</th><th>Price</th><th>1-Mo</th><th>Rationale</th>
+      </tr>
+      {% for stock in opp.stocks %}
+      <tr>
+        <td><span class="ticker-sym">{{ stock.ticker }}</span></td>
+        <td>{{ stock.company_name }}</td>
+        <td>{% if stock.market_data and stock.market_data.current_price %}${{ "%.2f"|format(stock.market_data.current_price) }}{% else %}—{% endif %}</td>
+        <td>
+          {% if stock.market_data and stock.market_data.perf_1m_pct is not none %}
+          <span class="{% if stock.market_data.perf_1m_pct >= 0 %}up{% else %}down{% endif %}">
+            {% if stock.market_data.perf_1m_pct >= 0 %}+{% endif %}{{ "%.1f"|format(stock.market_data.perf_1m_pct) }}%
+          </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ stock.rationale }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if opp.private_plays or opp.crypto_plays %}
+    <h3>Other Plays</h3>
+    {% if opp.private_plays %}
+    <p><strong>Private/Venture:</strong> {{ opp.private_plays | join(' · ') }}</p>
+    {% endif %}
+    {% if opp.crypto_plays %}
+    <p><strong>Crypto/Digital Assets:</strong> {{ opp.crypto_plays | join(' · ') }}</p>
+    {% endif %}
+    {% endif %}
+
+    {% if opp.supporting_signals %}
+    <h3>Supporting Quotes</h3>
+    {% for sig in opp.supporting_signals[:3] %}
+    <blockquote>
+      {{ sig.quote }}
+      <cite>— {{ sig.speaker }}{% if sig.source %} ({{ sig.source }}){% endif %}</cite>
+    </blockquote>
+    {% endfor %}
+    {% endif %}
+
+    {% if opp.risks %}
+    <div class="risks">
+      <div class="risks-label">Key Risks</div>
+      {{ opp.risks }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+
+<!-- Entity Summary Appendix -->
+<div class="page-break"></div>
+<h1>Entity Signal Summary</h1>
+<p style="color:var(--muted);margin-bottom:16pt;">Overview of signals extracted per entity across all sources.</p>
+<table class="entity-table">
+  <tr>
+    <th>Entity</th>
+    <th>Transcripts</th>
+    <th>Signals</th>
+    <th>Avg Conviction</th>
+    <th>Top Themes</th>
+    <th>Sources</th>
+  </tr>
+  {% for entity in entities %}
+  <tr>
+    <td><strong>{{ entity.name }}</strong></td>
+    <td>{{ entity.transcript_count }}</td>
+    <td>{{ entity.signal_count }}</td>
+    <td>{{ entity.avg_conviction }}</td>
+    <td style="font-size:8pt;">{{ entity.top_themes[:4] | join(', ') }}</td>
+    <td style="font-size:8pt;">{{ entity.sources | join(', ') }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+</body>
+</html>
