@@ -11,15 +11,20 @@ Run order:
   7. Write output to timestamped folder
 """
 
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(_PROJECT_ROOT / ".env", override=True)
+
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 import yaml
-from dotenv import load_dotenv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
@@ -34,12 +39,10 @@ from src.scrapers.podcast import PodcastScraper
 from src.scrapers.seeking_alpha import SeekingAlphaScraper
 from src.scrapers.youtube import YouTubeScraper
 
-load_dotenv()
-
 logger = logging.getLogger(__name__)
 console = Console()
 
-ROOT = Path(__file__).parent.parent
+ROOT = _PROJECT_ROOT
 CONFIG_DIR = ROOT / "config"
 OUTPUT_DIR = ROOT / "output"
 

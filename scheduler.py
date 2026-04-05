@@ -21,9 +21,8 @@ from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 from rich.console import Console
 
-load_dotenv()
-
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent
+load_dotenv(ROOT / ".env", override=True)
 console = Console()
 
 logging.basicConfig(

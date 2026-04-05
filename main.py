@@ -23,9 +23,10 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
 
-load_dotenv()
+ROOT = Path(__file__).resolve().parent
+# Always load project .env (not cwd). override=True so a stale empty env var can't win.
+load_dotenv(ROOT / ".env", override=True)
 
-ROOT = Path(__file__).parent
 console = Console()
 
 
