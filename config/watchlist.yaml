@@ -1,0 +1,51 @@
+# Watchlist of companies and people to track.
+#
+# Each entry can be a company or an individual. The agent will search all public
+# speech (earnings calls, YouTube, news, podcasts) from the last 30 days.
+#
+# Fields:
+#   name       - canonical name used in search queries
+#   type       - "company" or "person"
+#   ticker     - (optional) stock ticker for market data enrichment
+#   aliases    - additional search terms (e.g. CEO name for a company)
+#   seeking_alpha_slug - (optional) the slug in seekingalpha.com/symbol/<slug>
+
+watchlist:
+  - name: "Meta"
+    type: company
+    ticker: META
+    aliases:
+      - "Mark Zuckerberg"
+      - "Meta Platforms"
+    seeking_alpha_slug: META
+
+  - name: "Jensen Huang"
+    type: person
+    ticker: NVDA
+    aliases:
+      - "NVIDIA CEO"
+      - "NVDA earnings"
+    seeking_alpha_slug: NVDA
+
+  - name: "Microsoft"
+    type: company
+    ticker: MSFT
+    aliases:
+      - "Satya Nadella"
+      - "Microsoft AI"
+    seeking_alpha_slug: MSFT
+
+  - name: "Sam Altman"
+    type: person
+    aliases:
+      - "OpenAI CEO"
+      - "OpenAI"
+
+  - name: "Google"
+    type: company
+    ticker: GOOGL
+    aliases:
+      - "Sundar Pichai"
+      - "Alphabet"
+      - "Google DeepMind"
+    seeking_alpha_slug: GOOGL

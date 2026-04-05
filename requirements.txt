@@ -1,0 +1,31 @@
+# Core
+anthropic>=0.40.0
+openai>=1.50.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.2
+
+# Scraping
+playwright>=1.48.0
+youtube-transcript-api>=0.6.2
+google-api-python-client>=2.150.0
+tavily-python>=0.5.0
+requests>=2.32.0
+beautifulsoup4>=4.12.0
+lxml>=5.3.0
+
+# Data & Storage
+yfinance>=0.2.44
+sqlite-utils>=3.37.0
+
+# Output
+jinja2>=3.1.4
+weasyprint>=62.0
+Pillow>=10.4.0
+
+# Scheduling
+apscheduler>=3.10.4
+
+# Utilities
+tenacity>=9.0.0
+rich>=13.9.0
+click>=8.1.8
