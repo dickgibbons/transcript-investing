@@ -8,13 +8,15 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
+from src.investment.report_model import normalize_investment_report
+
 logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 
 def build_pdf(
-    opportunities: list[dict[str, Any]],
+    investment_report: list[dict[str, Any]] | dict[str, Any],
     analyses: list[dict[str, Any]],
     transcripts: list[dict[str, Any]],
     output_path: Path,
@@ -22,8 +24,11 @@ def build_pdf(
 ) -> Path:
     """
     Render and write the PDF report to `output_path`. Returns the path.
+    `investment_report` is a v2 dict from the mapper or a legacy flat list.
     """
     run_date = run_date or datetime.utcnow().strftime("%Y-%m-%d")
+
+    normalized = normalize_investment_report(investment_report)
 
     entity_data = _build_entity_table_data(analyses, transcripts)
     theme_counter: Counter = Counter()
@@ -41,7 +46,9 @@ def build_pdf(
         total_transcripts=len(transcripts),
         entity_count=len({t["entity_name"] for t in transcripts}),
         total_signals=total_signals,
-        opportunities=opportunities,
+        opportunity_sections=normalized["sections"],
+        report_layout=normalized["layout"],
+        opportunity_total_count=normalized["total_count"],
         cross_cutting_themes=cross_cutting,
         entities=entity_data,
     )

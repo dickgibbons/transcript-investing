@@ -227,7 +227,7 @@
     </div>
     <div class="cover-meta-row">
       <span class="cover-meta-label">Investment Opportunities</span>
-      <span class="cover-meta-value">{{ opportunities | length }}</span>
+      <span class="cover-meta-value">{{ opportunity_total_count }}</span>
     </div>
   </div>
   <div class="cover-disclaimer">
@@ -240,8 +240,13 @@
 <!-- Executive Summary -->
 <h1>Investment Opportunities</h1>
 <p style="color:var(--muted);margin-bottom:20pt;">
+  {% if report_layout == 'by_entity' %}
+  Each section below is based only on that watchlist entity&rsquo;s public remarks.
+  Derived from {{ total_signals }} signals across {{ entity_count }} tracked names in the last ~30 days.
+  {% else %}
   Ranked by composite conviction score derived from {{ total_signals }} signals
   across {{ entity_count }} industry leaders' public speech in the last 30 days.
+  {% endif %}
 </p>
 
 {% if cross_cutting_themes %}
@@ -254,7 +259,17 @@
 {% endif %}
 
 <!-- Opportunities -->
-{% for opp in opportunities %}
+{% if opportunity_total_count == 0 %}
+<p style="color:var(--muted);">No investment opportunities were generated for this run.</p>
+{% endif %}
+{% for section in opportunity_sections %}
+{% if report_layout == 'by_entity' and section.entity_name %}
+<h2>{{ section.entity_name }}</h2>
+<p style="color:var(--muted);font-size:9pt;margin-top:-6pt;margin-bottom:14pt;">
+  Investment ideas implied by this source&rsquo;s recent public remarks.
+</p>
+{% endif %}
+{% for opp in section.opportunities %}
 <div class="opp">
   <div class="opp-head">
     <span class="opp-rank">#{{ opp.rank }}</span>
@@ -351,6 +366,7 @@
     {% endif %}
   </div>
 </div>
+{% endfor %}
 {% endfor %}
 
 <!-- Entity Summary Appendix -->

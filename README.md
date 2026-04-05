@@ -6,7 +6,7 @@ AI-powered investment intelligence extracted from public speech — earnings cal
 
 1. **Scrape** — For each entity in your watchlist, the agent searches all public speech from the last 30 days across four sources: Seeking Alpha (earnings calls), YouTube, news/conference interviews, and podcasts.
 2. **Analyze** — Each transcript is sent to Claude Opus 4.6 (with adaptive thinking) to extract forward-looking signals: specific bets the speaker is making about AI, technology, and the economy.
-3. **Map** — A second Claude pass synthesizes signals across all entities into ranked investment opportunities (macro theme → sector → ETFs → individual stocks → private/crypto).
+3. **Map** — A second Claude pass turns signals into ranked investment opportunities (macro theme → sector → ETFs → individual stocks → private/crypto). Optionally (`investment.group_by_entity`) run that pass **per watchlist entity** so each section is only what *that* name said (e.g. Jensen Huang vs Google vs Meta).
 4. **Report** — An interactive HTML dashboard and a downloadable PDF are written to `output/<date>/`.
 
 ---
@@ -236,7 +236,8 @@ watchlist:
 | `scraping.lookback_days` | 30 | How many days back to search |
 | `scraping.max_results_per_source` | 10 | Max results per entity per source |
 | `analysis.model` | `claude-opus-4-6` | Claude model for transcript analysis |
-| `investment.top_opportunities` | 10 | How many opportunities to generate |
+| `investment.top_opportunities` | 10 | Max opportunities (combined report) or **per entity** when `group_by_entity` is true |
+| `investment.group_by_entity` | false | If true, separate investment sections per watchlist name (one Claude call per entity) |
 | `scheduler.day_of_week` | `sun` | Day of weekly run |
 | `scheduler.hour` | 20 | Hour of weekly run (24h) |
 | `scheduler.timezone` | `America/New_York` | Timezone for scheduling |

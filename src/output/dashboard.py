@@ -12,13 +12,15 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
+from src.investment.report_model import normalize_investment_report
+
 logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 
 def build_dashboard(
-    opportunities: list[dict[str, Any]],
+    investment_report: list[dict[str, Any]] | dict[str, Any],
     analyses: list[dict[str, Any]],
     transcripts: list[dict[str, Any]],
     output_path: Path,
@@ -26,16 +28,21 @@ def build_dashboard(
 ) -> Path:
     """
     Render the dashboard HTML and write it to `output_path`.
+    `investment_report` is a v2 dict from the mapper or a legacy flat list of opportunities.
     Returns the path of the written file.
     """
     run_date = run_date or datetime.utcnow().strftime("%Y-%m-%d")
 
+    normalized = normalize_investment_report(investment_report)
+    opportunity_sections = normalized["sections"]
+    all_opportunities = normalized["all_opportunities"]
+
     entity_data = _build_entity_data(analyses, transcripts)
-    chart_data = _build_chart_data(opportunities, analyses, transcripts)
+    chart_data = _build_chart_data(all_opportunities, analyses, transcripts)
     heatmap_themes, heatmap_rows = _build_heatmap(analyses)
 
     cross_cutting = []
-    if opportunities:
+    if all_opportunities:
         # Use the cross_cutting_themes from the first opportunity's parent if available
         pass
     # Extract from raw mapper result if stored; otherwise derive from frequency
@@ -54,7 +61,9 @@ def build_dashboard(
         total_transcripts=len(transcripts),
         entity_count=len({t["entity_name"] for t in transcripts}),
         total_signals=total_signals,
-        opportunities=opportunities,
+        opportunity_sections=opportunity_sections,
+        report_layout=normalized["layout"],
+        opportunity_total_count=normalized["total_count"],
         cross_cutting_themes=cross_cutting,
         entities=entity_data,
         heatmap_themes=heatmap_themes,

@@ -17,7 +17,9 @@ analysis:
 
 investment:
   model: "claude-opus-4-6"
-  top_opportunities: 10      # Number of investment opportunities in final report
+  top_opportunities: 10      # Per report (combined) or per watchlist entity (when group_by_entity is true)
+  # When true: one Claude mapping call per entity; HTML/PDF group cards under each name (e.g. "Google — ideas from their remarks").
+  group_by_entity: false
   include_crypto: true
   include_private: true
 

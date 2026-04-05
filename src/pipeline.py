@@ -31,6 +31,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from src import db
 from src.db import get_transcripts_by_ids
 from src.investment.mapper import InvestmentMapper
+from src.investment.report_model import total_opportunity_count
 from src.output.dashboard import build_dashboard
 from src.output.pdf_report import build_pdf
 from src.processors.analyzer import TranscriptAnalyzer
@@ -214,19 +215,24 @@ def run(dry_run: bool = False, quick: bool = False) -> Path:
         mapper = InvestmentMapper(
             model=investment_cfg.get("model", "claude-opus-4-6"),
             top_n=investment_cfg.get("top_opportunities", 10),
+            group_by_entity=investment_cfg.get("group_by_entity", False),
         )
 
         console.print("[bold]Mapping signals to investment opportunities...[/]")
-        opportunities = mapper.map(analyses)
-        console.print(f"[green]✓[/] Generated [bold]{len(opportunities)}[/] investment opportunities\n")
+        investment_report = mapper.map(analyses)
+        n_opp = total_opportunity_count(investment_report)
+        mode = "per entity" if investment_cfg.get("group_by_entity") else "combined"
+        console.print(
+            f"[green]✓[/] Generated [bold]{n_opp}[/] investment opportunities ({mode})\n"
+        )
 
         # ── Stage 4: Output ──────────────────────────────────────────────────────
         html_path = output_folder / "index.html"
         pdf_path = output_folder / f"report_{run_date}.pdf"
 
         console.print("[bold]Building dashboard and PDF...[/]")
-        build_dashboard(opportunities, analyses, transcripts, html_path, run_date)
-        build_pdf(opportunities, analyses, transcripts, pdf_path, run_date)
+        build_dashboard(investment_report, analyses, transcripts, html_path, run_date)
+        build_pdf(investment_report, analyses, transcripts, pdf_path, run_date)
 
         # Symlink output/latest → this run
         latest_link = OUTPUT_DIR / "latest"
@@ -236,7 +242,7 @@ def run(dry_run: bool = False, quick: bool = False) -> Path:
 
         db.save_investment_report(
             run_id=run_id,
-            opportunities=opportunities,
+            opportunities=investment_report,
             html_path=str(html_path),
             pdf_path=str(pdf_path),
         )

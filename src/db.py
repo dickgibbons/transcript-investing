@@ -78,7 +78,7 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS investment_reports (
                 id                  INTEGER PRIMARY KEY AUTOINCREMENT,
                 run_id              INTEGER REFERENCES runs(id) UNIQUE,
-                opportunities_json  TEXT NOT NULL,  -- JSON array of opportunity objects
+                opportunities_json  TEXT NOT NULL,  -- v1: JSON array; v2: {report_version, layout, sections}
                 generated_at        TEXT NOT NULL,
                 html_path           TEXT,
                 pdf_path            TEXT
@@ -210,7 +210,7 @@ def get_analyses_for_run(run_id: int) -> list[dict[str, Any]]:
 
 def save_investment_report(
     run_id: int,
-    opportunities: list[dict],
+    opportunities: Any,
     html_path: str | None = None,
     pdf_path: str | None = None,
 ) -> int:

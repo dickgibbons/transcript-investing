@@ -231,6 +231,17 @@
 
   /* ── Entities panel ── */
   .entities-grid { display: grid; gap: 20px; }
+  .opp-section-banner {
+    margin: 28px 0 16px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.08));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .opp-section-banner:first-child { margin-top: 0; }
+  .opp-section-title { font-size: 20px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .opp-section-sub { font-size: 12px; color: var(--muted); margin: 0; }
+
   .entity-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
   .entity-header {
     padding: 18px 24px;
@@ -354,9 +365,20 @@
     {% endif %}
 
     <div class="opp-grid">
-      {% for opp in opportunities %}
-      <div class="opp-card" id="opp-{{ loop.index }}">
-        <div class="opp-header" onclick="toggleOpp('opp-{{ loop.index }}')">
+      {% if opportunity_total_count == 0 %}
+      <div class="empty-state">No opportunities generated yet.</div>
+      {% else %}
+      {% for section in opportunity_sections %}
+      {% set section_idx = loop.index %}
+      {% if report_layout == 'by_entity' and section.entity_name %}
+      <div class="opp-section-banner">
+        <h2 class="opp-section-title">{{ section.entity_name }}</h2>
+        <p class="opp-section-sub">Investment ideas implied by this source&rsquo;s recent public remarks</p>
+      </div>
+      {% endif %}
+      {% for opp in section.opportunities %}
+      <div class="opp-card" id="opp-{{ section_idx }}-{{ loop.index }}">
+        <div class="opp-header" onclick="toggleOpp('opp-{{ section_idx }}-{{ loop.index }}')">
           <div class="rank-badge">{{ opp.rank }}</div>
           <div class="opp-meta">
             <div class="opp-theme">{{ opp.macro_theme }}</div>
@@ -370,10 +392,10 @@
             <span class="conviction-label">CONVICTION</span>
             <span class="conviction-value">{{ "%.1f"|format(opp.conviction_score) }}</span>
             <span class="conviction-max">/10</span>
-            <span class="chevron" id="chevron-opp-{{ loop.index }}">▼</span>
+            <span class="chevron" id="chevron-opp-{{ section_idx }}-{{ loop.index }}">▼</span>
           </div>
         </div>
-        <div class="opp-body" id="body-opp-{{ loop.index }}">
+        <div class="opp-body" id="body-opp-{{ section_idx }}-{{ loop.index }}">
           <div class="opp-body-inner">
             <div class="thesis">{{ opp.thesis }}</div>
 
@@ -471,9 +493,9 @@
           </div>
         </div>
       </div>
-      {% else %}
-      <div class="empty-state">No opportunities generated yet.</div>
       {% endfor %}
+      {% endfor %}
+      {% endif %}
     </div>
   </div>
 

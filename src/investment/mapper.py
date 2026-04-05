@@ -19,6 +19,7 @@ import anthropic
 
 from ..secrets import anthropic_api_key
 from .market_data import enrich_tickers
+from .report_model import build_report_v2
 
 logger = logging.getLogger(__name__)
 
@@ -170,30 +171,103 @@ Use this exact structure:
 
 
 class InvestmentMapper:
-    def __init__(self, model: str = "claude-opus-4-6", top_n: int = 10):
+    def __init__(
+        self,
+        model: str = "claude-opus-4-6",
+        top_n: int = 10,
+        group_by_entity: bool = False,
+    ):
         self.model = model
         self.top_n = top_n
+        self.group_by_entity = group_by_entity
         self.client = anthropic.Anthropic(api_key=anthropic_api_key())
 
-    def map(self, analyses: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def map(self, analyses: list[dict[str, Any]]) -> dict[str, Any]:
         """
-        Take a list of per-transcript analysis dicts and return ranked investment opportunities.
-        Each analysis dict should have: entity_name, signals, themes, summary.
+        Return a versioned report dict (see report_model) with sections of opportunities.
+        Legacy callers expected a flat list — use normalize_investment_report() for display.
         """
         if not analyses:
             logger.warning("No analyses to map — returning empty opportunities list")
-            return []
+            return build_report_v2("combined", [])
 
+        if self.group_by_entity:
+            return self._map_by_entity(analyses)
+        return self._map_combined(analyses)
+
+    def _map_combined(self, analyses: list[dict[str, Any]]) -> dict[str, Any]:
         aggregated = self._aggregate_analyses(analyses)
         logger.info(
-            "Mapping %d total signals from %d entities to investment opportunities",
+            "Mapping %d total signals from %d entities to investment opportunities (combined)",
             aggregated["total_signals"],
             aggregated["entity_count"],
         )
-
-        opportunities = self._generate_opportunities(aggregated)
+        opportunities = self._generate_opportunities(aggregated, focus_entity_name=None)
+        opportunities = self._assign_ranks(opportunities[: self.top_n])
         enriched = self._enrich_with_market_data(opportunities)
-        return enriched[: self.top_n]
+        return build_report_v2(
+            "combined",
+            [{"entity_name": None, "opportunities": enriched}],
+        )
+
+    def _map_by_entity(self, analyses: list[dict[str, Any]]) -> dict[str, Any]:
+        by_entity: dict[str, list[dict]] = {}
+        for a in analyses:
+            entity = a.get("entity_name", "Unknown")
+            by_entity.setdefault(entity, []).append(a)
+
+        sections: list[dict[str, Any]] = []
+        for entity in sorted(by_entity.keys()):
+            entity_analyses = by_entity[entity]
+            block = self._entity_summary_block(entity, entity_analyses)
+            if block["signal_count"] == 0:
+                continue
+            aggregated = {
+                "entity_count": 1,
+                "total_signals": block["signal_count"],
+                "entity_summaries": [block],
+                "top_n_requested": self.top_n,
+            }
+            logger.info(
+                "Mapping %d signals for entity %r only (per-entity report)",
+                block["signal_count"],
+                entity,
+            )
+            opportunities = self._generate_opportunities(
+                aggregated, focus_entity_name=entity
+            )
+            opportunities = self._assign_ranks(opportunities[: self.top_n])
+            if not opportunities:
+                continue
+            enriched = self._enrich_with_market_data(opportunities)
+            sections.append({"entity_name": entity, "opportunities": enriched})
+
+        return build_report_v2("by_entity", sections)
+
+    @staticmethod
+    def _assign_ranks(opportunities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for i, o in enumerate(opportunities, start=1):
+            o["rank"] = i
+        return opportunities
+
+    def _entity_summary_block(self, entity: str, entity_analyses: list[dict]) -> dict[str, Any]:
+        signals: list[dict] = []
+        themes: set[str] = set()
+        summaries: list[str] = []
+        for a in entity_analyses:
+            signals.extend(a.get("signals", []))
+            themes.update(a.get("themes", []))
+            if a.get("summary"):
+                summaries.append(a["summary"])
+        return {
+            "entity": entity,
+            "signal_count": len(signals),
+            "top_signals": sorted(
+                signals, key=lambda s: s.get("conviction", 0), reverse=True
+            )[:20],
+            "themes": list(themes),
+            "overall_summary": " ".join(summaries[:3]),
+        }
 
     def _aggregate_analyses(self, analyses: list[dict]) -> dict[str, Any]:
         """Group analyses by entity and build a consolidated input for Claude."""
@@ -203,32 +277,12 @@ class InvestmentMapper:
             by_entity.setdefault(entity, []).append(a)
 
         entity_summaries = []
-        all_themes: list[str] = []
         total_signals = 0
 
         for entity, entity_analyses in by_entity.items():
-            signals = []
-            themes: set[str] = set()
-            summaries = []
-            for a in entity_analyses:
-                signals.extend(a.get("signals", []))
-                themes.update(a.get("themes", []))
-                if a.get("summary"):
-                    summaries.append(a["summary"])
-
-            entity_summaries.append(
-                {
-                    "entity": entity,
-                    "signal_count": len(signals),
-                    "top_signals": sorted(
-                        signals, key=lambda s: s.get("conviction", 0), reverse=True
-                    )[:20],
-                    "themes": list(themes),
-                    "overall_summary": " ".join(summaries[:3]),
-                }
-            )
-            all_themes.extend(themes)
-            total_signals += len(signals)
+            block = self._entity_summary_block(entity, entity_analyses)
+            entity_summaries.append(block)
+            total_signals += block["signal_count"]
 
         return {
             "entity_count": len(by_entity),
@@ -237,8 +291,28 @@ class InvestmentMapper:
             "top_n_requested": self.top_n,
         }
 
-    def _generate_opportunities(self, aggregated: dict) -> list[dict]:
-        user_prompt = f"""Below are investment signals extracted from {aggregated['entity_count']} industry leaders' public speeches in the last 30 days.
+    def _generate_opportunities(
+        self, aggregated: dict, *, focus_entity_name: str | None
+    ) -> list[dict]:
+        if focus_entity_name:
+            focus_clause = f"""IMPORTANT — SINGLE WATCHLIST ENTITY:
+The JSON below contains signals from ONLY: "{focus_entity_name}".
+Every opportunity must be justified solely from this source's public remarks.
+In supporting_signals, set speaker to "{focus_entity_name}" when quoting their views.
+Do not attribute investment themes to other people or companies."""
+            intro = (
+                f'Below are investment signals from public remarks by "{focus_entity_name}" only '
+                f"(last ~30 days, aggregated across transcripts)."
+            )
+        else:
+            focus_clause = ""
+            intro = (
+                f"Below are investment signals extracted from {aggregated['entity_count']} "
+                "industry leaders' public speeches in the last 30 days."
+            )
+
+        user_prompt = f"""{focus_clause}
+{intro}
 
 {json.dumps(aggregated['entity_summaries'], indent=2)}
 
