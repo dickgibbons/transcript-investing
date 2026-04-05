@@ -9,12 +9,12 @@ For each transcript, Claude extracts:
 
 import json
 import logging
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import anthropic
 
+from ..secrets import anthropic_api_key
 from .cleaner import chunk_transcript, normalize
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ class TranscriptAnalyzer:
     def __init__(self, model: str = "claude-opus-4-6", max_parallel: int = 5):
         self.model = model
         self.max_parallel = max_parallel
-        self.client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        self.client = anthropic.Anthropic(api_key=anthropic_api_key())
 
     def analyze(
         self, entity_name: str, title: str, raw_text: str, source: str

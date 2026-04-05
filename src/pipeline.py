@@ -16,7 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(_PROJECT_ROOT / ".env", override=True)
+load_dotenv(_PROJECT_ROOT / ".env", override=True, encoding="utf-8-sig")
 
 import logging
 import os
@@ -38,6 +38,7 @@ from src.scrapers.news import NewsScraper
 from src.scrapers.podcast import PodcastScraper
 from src.scrapers.seeking_alpha import SeekingAlphaScraper
 from src.scrapers.youtube import YouTubeScraper
+from src.secrets import anthropic_api_key
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -162,6 +163,11 @@ def run(dry_run: bool = False, quick: bool = False) -> Path:
             return output_folder
 
         # ── Stage 2: Analyze ─────────────────────────────────────────────────────
+        _ak = anthropic_api_key()
+        console.print(
+            f"[dim]Anthropic API key: {len(_ak)} characters loaded from .env[/]"
+        )
+
         analysis_cfg = config.get("analysis", {})
         analyzer = TranscriptAnalyzer(
             model=analysis_cfg.get("model", "claude-opus-4-6"),

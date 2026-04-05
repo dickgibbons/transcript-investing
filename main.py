@@ -25,7 +25,7 @@ from rich.table import Table
 
 ROOT = Path(__file__).resolve().parent
 # Always load project .env (not cwd). override=True so a stale empty env var can't win.
-load_dotenv(ROOT / ".env", override=True)
+load_dotenv(ROOT / ".env", override=True, encoding="utf-8-sig")
 
 console = Console()
 

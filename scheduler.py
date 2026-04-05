@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 
 ROOT = Path(__file__).resolve().parent
-load_dotenv(ROOT / ".env", override=True)
+load_dotenv(ROOT / ".env", override=True, encoding="utf-8-sig")
 console = Console()
 
 logging.basicConfig(

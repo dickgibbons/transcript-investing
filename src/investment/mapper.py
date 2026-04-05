@@ -13,11 +13,11 @@ list of investment opportunities spanning:
 
 import json
 import logging
-import os
 from typing import Any
 
 import anthropic
 
+from ..secrets import anthropic_api_key
 from .market_data import enrich_tickers
 
 logger = logging.getLogger(__name__)
@@ -173,7 +173,7 @@ class InvestmentMapper:
     def __init__(self, model: str = "claude-opus-4-6", top_n: int = 10):
         self.model = model
         self.top_n = top_n
-        self.client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        self.client = anthropic.Anthropic(api_key=anthropic_api_key())
 
     def map(self, analyses: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
